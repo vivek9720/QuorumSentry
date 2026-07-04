@@ -2,7 +2,7 @@
 
 QuorumSentry is a JVM security telemetry correlator for small response teams that need to triage heterogeneous evidence without deploying a service. It parses syslog, flow CSV, compact threat bundles, policy rules, and a small archive format, then builds an incident graph and risk report.
 
-The repository is intentionally self-contained for fuzzing submission: no network services, no generated credentials, and no build-time downloads. Fuzz targets are in `fuzz/`; ClusterFuzzLite entry points are in `.clusterfuzzlite/`.
+It is designed for offline incident review in lab networks, air-gapped response rooms, and small environments where telemetry needs to be exchanged as files instead of streamed into a central SaaS platform. The core library is dependency-light so responders can build it from a clean checkout and run the parsers, graphing, feature extraction, and policy evaluation locally.
 
 ## Formats
 
@@ -12,10 +12,22 @@ The repository is intentionally self-contained for fuzzing submission: no networ
 - Policy DSL statements such as `rule ssh when dport == 22 then quarantine target=host`.
 - QAR archives that combine multiple telemetry objects.
 
+## Offline Analysis
+
+QuorumSentry can be used as a library or as a small command-line analyzer:
+
+```bash
+java io.quorumsentry.cli.QuorumSentryCli syslog incident.log
+java io.quorumsentry.cli.QuorumSentryCli flows netflow.csv
+java io.quorumsentry.cli.QuorumSentryCli archive case.qar
+```
+
+The analyzer emits JSON risk summaries for structured inputs and Markdown findings for syslog review. Detectors cover credential abuse, administrative protocol exposure, DNS tunneling, data exfiltration, ransomware preparation, persistence, identity-provider misuse, and related incident-response signals.
+
 ## Local Build
 
 ```bash
 javac -d build/classes $(find src/main/java -name '*.java')
 ```
 
-For fuzzing, run `.clusterfuzzlite/build.sh` inside the ClusterFuzzLite JVM image.
+The `fuzz/` directory contains parser harnesses used during development to harden the file formats and policy DSL.

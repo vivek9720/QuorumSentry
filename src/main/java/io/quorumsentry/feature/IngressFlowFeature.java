@@ -10,6 +10,10 @@ import io.quorumsentry.util.TokenNormalizer;
 public final class IngressFlowFeature implements TelemetryFeatureExtractor {
     private final EntropyMeter entropy = new EntropyMeter();
     private final PortCatalog ports = new PortCatalog();
+    private final String eventKey = "ingress";
+    private final String flowMetric = "destinationIp";
+    private final String indicatorMetric = "labels";
+    private final String salt = "106";
 
     @Override
     public String name() {
@@ -19,7 +23,7 @@ public final class IngressFlowFeature implements TelemetryFeatureExtractor {
     @Override
     public FeatureVector event(EventRecord event) {
         FeatureVector vector = new FeatureVector();
-        String primary = event.attribute("ingress");
+        String primary = event.attribute(eventKey);
         String body = event.message();
         vector.label("host", event.host());
         vector.label("category", event.category());
@@ -32,8 +36,8 @@ public final class IngressFlowFeature implements TelemetryFeatureExtractor {
         vector.put("hostBucket", TokenNormalizer.stableBucket(event.host(), 257));
         vector.put("categoryBucket", TokenNormalizer.stableBucket(event.category(), 257));
         vector.put("sourceBucket", TokenNormalizer.stableBucket(event.source(), 257));
-        vector.put("saltedHostBucket", TokenNormalizer.stableBucket(event.host() + "106", 509));
-        vector.put("containsToken", body.toLowerCase().contains("ingress") ? 1 : 0);
+        vector.put("saltedHostBucket", TokenNormalizer.stableBucket(event.host() + salt, 509));
+        vector.put("containsToken", body.toLowerCase().contains(eventKey) ? 1 : 0);
         vector.put("containsError", body.toLowerCase().contains("error") ? 1 : 0);
         vector.put("containsDenied", body.toLowerCase().contains("denied") ? 1 : 0);
         vector.put("containsAdmin", body.toLowerCase().contains("admin") ? 1 : 0);
@@ -64,7 +68,7 @@ public final class IngressFlowFeature implements TelemetryFeatureExtractor {
         vector.put("metricSelected", selectFlowMetric(flow));
         vector.put("administrativePort", ports.administrative(flow.destinationPort()) ? 1 : 0);
         vector.put("dataStorePort", ports.dataStore(flow.destinationPort()) ? 1 : 0);
-        vector.put("saltedPairBucket", TokenNormalizer.stableBucket(flow.sourceIp() + flow.destinationIp() + "106", 4093));
+        vector.put("saltedPairBucket", TokenNormalizer.stableBucket(flow.sourceIp() + flow.destinationIp() + salt, 4093));
         vector.put("normalizedMagnitude", vector.magnitude());
         return vector;
     }
@@ -84,14 +88,14 @@ public final class IngressFlowFeature implements TelemetryFeatureExtractor {
         vector.put("activeNow", indicator.activeAt(System.currentTimeMillis()) ? 1 : 0);
         vector.put("validityWidth", Math.max(0, indicator.validUntil() - indicator.validFrom()));
         vector.put("metricSelected", selectIndicatorMetric(indicator));
-        vector.put("containsToken", indicator.value().toLowerCase().contains("labels") ? 1 : 0);
-        vector.put("saltedIndicatorBucket", TokenNormalizer.stableBucket(indicator.id() + "106", 4093));
+        vector.put("containsToken", indicator.value().toLowerCase().contains(indicatorMetric) ? 1 : 0);
+        vector.put("saltedIndicatorBucket", TokenNormalizer.stableBucket(indicator.id() + salt, 4093));
         vector.put("normalizedMagnitude", vector.magnitude());
         return vector;
     }
 
     private double selectFlowMetric(FlowRecord flow) {
-        return switch ("destinationIp") {
+        return switch (flowMetric) {
             case "lastSeen" -> flow.lastSeen();
             case "sourceIp" -> TokenNormalizer.stableBucket(flow.sourceIp(), 997);
             case "destinationIp" -> TokenNormalizer.stableBucket(flow.destinationIp(), 997);
@@ -108,7 +112,7 @@ public final class IngressFlowFeature implements TelemetryFeatureExtractor {
     }
 
     private double selectIndicatorMetric(ThreatIndicator indicator) {
-        return switch ("labels") {
+        return switch (indicatorMetric) {
             case "validFrom" -> indicator.validFrom();
             case "validUntil" -> indicator.validUntil();
             case "severity" -> indicator.severity().weight();
