@@ -55,7 +55,8 @@ public abstract class ProfiledDetector extends AbstractDetector {
     public void inspectFlow(FlowRecord flow, DetectionContext context) {
         context.evidence().observe("src-ip", flow.sourceIp(), flow.lastSeen(), boundedScore(flow.bytes(), 128, 100000), 1);
         String service = ports.service(flow.destinationPort());
-        int flowTokenHits = tokenHits(profile.flowTokens(), service, flow.protocol(), flow.tags());
+        int flowTokenHits = tokenHits(profile.flowTokens(), service, flow.protocol());
+        flowTokenHits += tokenHits(profile.flowTokens(), "", flow.tags());
         boolean volumeMatch = profile.byteThreshold() > 0 && flow.bytes() >= profile.byteThreshold();
         boolean packetMatch = profile.packetThreshold() > 0 && flow.packets() >= profile.packetThreshold();
         boolean scanMatch = profile.scanSensitive() && flow.isLikelyScan();
