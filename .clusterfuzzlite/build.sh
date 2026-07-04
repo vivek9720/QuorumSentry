@@ -1,7 +1,8 @@
 #!/bin/bash -eu
 cd "${SRC:-$(pwd)}"
 BUILD_DIR="$WORK/quorumsentry-classes"
-mkdir -p "$BUILD_DIR" "$OUT"
+LIB_DIR="$OUT/.quorumsentry-lib"
+mkdir -p "$BUILD_DIR" "$OUT" "$LIB_DIR"
 find src/main/java fuzz -name '*.java' | sort > "$WORK/quorumsentry-sources.txt"
 
 JAZZER_API="${JAZZER_API_PATH:-}"
@@ -11,15 +12,14 @@ fi
 
 if [[ -n "$JAZZER_API" ]]; then
   javac -encoding UTF-8 -g -cp "$JAZZER_API" -d "$BUILD_DIR" @"$WORK/quorumsentry-sources.txt"
-  cp "$JAZZER_API" "$OUT/jazzer_api_deploy.jar"
+  cp "$JAZZER_API" "$LIB_DIR/jazzer_api_deploy.jar"
 else
   javac -encoding UTF-8 -g -d "$BUILD_DIR" @"$WORK/quorumsentry-sources.txt"
 fi
 
-jar cf "$OUT/quorumsentry.jar" -C "$BUILD_DIR" .
-find /usr/local /opt -name 'jazzer*.jar' -type f 2>/dev/null \
-  ! -name 'jazzer_api_deploy.jar' \
-  -exec cp {} "$OUT/" \; || true
+jar cf "$LIB_DIR/quorumsentry.jar" -C "$BUILD_DIR" .
+find /usr/local /opt -name 'jazzer*standalone*.jar' -type f 2>/dev/null \
+  -exec cp {} "$LIB_DIR/" \; || true
 
 emit_jazzer_wrapper() {
   local target="$1"
@@ -28,9 +28,10 @@ emit_jazzer_wrapper() {
 #!/bin/bash
 set -eu
 DIR="\$(cd "\$(dirname "\$0")" && pwd)"
-CP="\$DIR/quorumsentry.jar"
-if [[ -f "\$DIR/jazzer_api_deploy.jar" ]]; then
-  CP="\$CP:\$DIR/jazzer_api_deploy.jar"
+LIB_DIR="\$DIR/.quorumsentry-lib"
+CP="\$LIB_DIR/quorumsentry.jar"
+if [[ -f "\$LIB_DIR/jazzer_api_deploy.jar" ]]; then
+  CP="\$CP:\$LIB_DIR/jazzer_api_deploy.jar"
 fi
 JAZZER_BIN="\${JAZZER:-}"
 if [[ -z "\$JAZZER_BIN" ]]; then
@@ -42,7 +43,7 @@ if [[ -z "\$JAZZER_BIN" ]]; then
   done
 fi
 if [[ -z "\$JAZZER_BIN" ]]; then
-  for jar in "\$DIR"/jazzer*standalone*.jar "\$DIR"/jazzer*.jar; do
+  for jar in "\$LIB_DIR"/jazzer*standalone*.jar; do
     if [[ -f "\$jar" && "\$jar" != *jazzer_api_deploy.jar ]]; then
       exec java -jar "\$jar" --cp="\$CP" --target_class="$target" "\$@"
     fi
@@ -57,7 +58,7 @@ EOF
 
 for target in SyslogFuzzer FlowFuzzer ThreatBundleFuzzer PolicyFuzzer ArchiveFuzzer; do
   if command -v compile_jvm_fuzzer >/dev/null 2>&1; then
-    compile_jvm_fuzzer "$OUT/quorumsentry.jar" "$target" "$OUT/$target"
+    compile_jvm_fuzzer "$LIB_DIR/quorumsentry.jar" "$target" "$OUT/$target"
   else
     emit_jazzer_wrapper "$target"
   fi

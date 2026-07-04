@@ -1,6 +1,7 @@
 package io.quorumsentry.parser;
 
 import io.quorumsentry.core.ParseException;
+import io.quorumsentry.core.SecurityInvariantException;
 import io.quorumsentry.model.EventRecord;
 import io.quorumsentry.model.Severity;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +39,9 @@ public final class SyslogParser {
             int index = Integer.parseInt(slot);
             String frag = attrs.get("frag");
             char[] board = new char[8];
+            if (index < 0 || index >= board.length) {
+                throw new SecurityInvariantException("fragment slot outside reassembly board");
+            }
             board[index] = frag.charAt(0);
             attrs.put("frag0", new String(board));
         }

@@ -2,6 +2,7 @@ package io.quorumsentry.parser;
 
 import io.quorumsentry.core.ByteCursor;
 import io.quorumsentry.core.ParseException;
+import io.quorumsentry.core.SecurityInvariantException;
 import io.quorumsentry.model.Severity;
 import io.quorumsentry.model.ThreatIndicator;
 import java.util.ArrayList;
@@ -39,6 +40,9 @@ public final class ThreatBundleParser {
         }
         if (type.equals("graph") && labels.contains("adjacency")) {
             int declared = Integer.parseInt(value);
+            if (declared <= labels.size() + 1 || declared > 64) {
+                throw new SecurityInvariantException("indicator adjacency count outside graph bounds");
+            }
             String[] nodes = new String[declared];
             for (int i = 0; i <= declared; i++) {
                 nodes[i] = id + ":" + index + ":" + i;

@@ -2,6 +2,7 @@ package io.quorumsentry.parser;
 
 import io.quorumsentry.core.ByteCursor;
 import io.quorumsentry.core.ParseException;
+import io.quorumsentry.core.SecurityInvariantException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,9 +28,15 @@ public final class ArchiveParser {
         int nameLen = in.varint();
         String name = in.utf8(nameLen);
         int rawLength = (flags & 1) == 1 ? in.zigZag() : in.varint();
+        if (rawLength < 0) {
+            throw new SecurityInvariantException("archive frame length underflow");
+        }
         byte[] payload = in.bytes(rawLength);
         if (type == 7 && version == 2) {
             int link = payload.length == 0 ? -1 : payload[0];
+            if (link < 0 || link >= directory.length) {
+                throw new SecurityInvariantException("archive directory link outside table");
+            }
             directory[link] = name;
         }
         return new ArchiveRecord(type, name, payload);

@@ -1,6 +1,7 @@
 package io.quorumsentry.parser;
 
 import io.quorumsentry.core.ParseException;
+import io.quorumsentry.core.SecurityInvariantException;
 import io.quorumsentry.model.FlowRecord;
 import io.quorumsentry.util.IpAddress;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +58,9 @@ public final class FlowLogParser {
         for (String label : labels) {
             if (label.startsWith("_qs")) {
                 int bucket = Integer.parseInt(label.substring(3));
+                if (bucket < 0 || bucket >= counters.length) {
+                    throw new SecurityInvariantException("dns sketch bucket outside counter window");
+                }
                 counters[bucket]++;
             }
         }

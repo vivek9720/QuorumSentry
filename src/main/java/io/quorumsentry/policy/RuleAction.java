@@ -1,5 +1,6 @@
 package io.quorumsentry.policy;
 
+import io.quorumsentry.core.SecurityInvariantException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -26,6 +27,9 @@ public final class RuleAction {
         if (verb.equals("escalate") && "playbook".equals(params.get("mode"))) {
             int step = Integer.parseInt(params.getOrDefault("step", "0"));
             String[] runbook = new String[4];
+            if (step < 0 || step >= runbook.length) {
+                throw new SecurityInvariantException("playbook escalation step outside runbook");
+            }
             runbook[step] = params.getOrDefault("target", "soc");
         }
         return new RuleAction(verb, params);
