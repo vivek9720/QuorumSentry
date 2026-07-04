@@ -1,0 +1,2 @@
+policy response
+rule dns when dport == 53 then tag target=dns

@@ -1,0 +1,11 @@
+language: jvm
+fuzzing_engines:
+  - libfuzzer
+sanitizers:
+  - address
+fuzz_targets:
+  - SyslogFuzzer
+  - FlowFuzzer
+  - ThreatBundleFuzzer
+  - PolicyFuzzer
+  - ArchiveFuzzer

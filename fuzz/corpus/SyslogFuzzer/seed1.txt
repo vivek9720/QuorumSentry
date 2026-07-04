@@ -1,0 +1,1 @@
+<13>Jul 04 10:11:12 sensor01 sshd: login user=alice src_ip=10.1.2.3 result=failed
